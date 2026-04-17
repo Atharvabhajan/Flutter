@@ -199,8 +199,31 @@ class MainApp extends StatefulWidget {
   State<MainApp> createState() => _MainAppState();
 }
 
-class _MainAppState extends State<MainApp> {
+class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
   int _selectedIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Only re-enter disguise when the app is completely hidden (paused)
+    // We avoid 'inactive' to prevent relocking during system transitions/overlays
+    if (state == AppLifecycleState.paused) {
+      if (StealthModeService.isProtectionEnabled) {
+        StealthModeService.enterDisguise();
+      }
+    }
+  }
 
   void _onLogout() {
     Navigator.of(context).pushReplacement(

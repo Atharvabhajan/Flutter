@@ -3,26 +3,54 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class StealthModeService {
   static const _storage = FlutterSecureStorage();
+  
+  // ── Runtime state ────────────────────────────────────────────────────────
   static final ValueNotifier<bool> isStealthNotifier = ValueNotifier(false);
 
+  // ── Persistent Config ───────────────────────────────────────────────────
   static String? _secretPhrase;
   static String? _alertKeyword;
   static String? _recordStartKeyword;
   static String? _recordStopKeyword;
+  static bool    _isProtectionEnabled = false;
 
-  static bool   get isStealthMode      => isStealthNotifier.value;
-  static String get secretPhrase       => _secretPhrase      ?? '';
-  static String get alertKeyword       => _alertKeyword      ?? '';
-  static String get recordStartKeyword => _recordStartKeyword ?? '';
-  static String get recordStopKeyword  => _recordStopKeyword  ?? '';
+  static bool   get isStealthMode           => isStealthNotifier.value;
+  static bool   get isProtectionEnabled     => _isProtectionEnabled;
+  static String get secretPhrase            => _secretPhrase      ?? '';
+  static String get alertKeyword            => _alertKeyword      ?? '';
+  static String get recordStartKeyword      => _recordStartKeyword ?? '';
+  static String get recordStopKeyword       => _recordStopKeyword  ?? '';
 
   static Future<void> initialize() async {
     _secretPhrase       = await _storage.read(key: 'stealth_secret_phrase');
     _alertKeyword       = await _storage.read(key: 'stealth_alert_keyword');
     _recordStartKeyword = await _storage.read(key: 'stealth_record_start');
     _recordStopKeyword  = await _storage.read(key: 'stealth_record_stop');
-    final v = await _storage.read(key: 'is_stealth_mode');
-    isStealthNotifier.value = (v == 'true');
+    
+    final protection = await _storage.read(key: 'is_stealth_protection_enabled');
+    _isProtectionEnabled = (protection == 'true');
+    
+    // On app launch, the disguise state matches the persistent protection state
+    isStealthNotifier.value = _isProtectionEnabled;
+  }
+
+  /// Master switch for the Stealth Protection feature.
+  /// This only updates the persistent preference, not the current runtime state.
+  static Future<void> setStealthProtection(bool enabled) async {
+    _isProtectionEnabled = enabled;
+    await _storage.write(key: 'is_stealth_protection_enabled', value: enabled.toString());
+  }
+
+  /// Session-based unlock: Exits the disguise but keeps the feature enabled for next launch.
+  static void exitDisguise() {
+    isStealthNotifier.value = false;
+  }
+
+  /// Re-enters the disguise manually (requires feature to be enabled).
+  static void enterDisguise() {
+    if (_isProtectionEnabled) {
+      isStealthNotifier.value = true;
+    }
   }
 
   static Future<void> enableStealthMode(
@@ -40,12 +68,12 @@ class StealthModeService {
     await _storage.write(key: 'stealth_alert_keyword',  value: _alertKeyword);
     await _storage.write(key: 'stealth_record_start',   value: _recordStartKeyword);
     await _storage.write(key: 'stealth_record_stop',    value: _recordStopKeyword);
-    await _storage.write(key: 'is_stealth_mode',        value: 'true');
-    isStealthNotifier.value = true;
+    
+    // Enabling the feature for the first time
+    await setStealthProtection(true);
   }
 
   static Future<void> disableStealthMode() async {
-    await _storage.write(key: 'is_stealth_mode', value: 'false');
-    isStealthNotifier.value = false;
+    await setStealthProtection(false);
   }
 }

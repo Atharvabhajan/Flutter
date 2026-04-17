@@ -12,9 +12,11 @@ import '../services/stealth_mode_service.dart';
 import 'settings_screen.dart';
 import 'audio_recording_screen.dart';
 import 'add_contact_screen.dart';
+import '../widgets/custom_button.dart';
 import 'contact_list_screen.dart';
 import 'practice_mode_screen.dart';
 import 'evidence_recorder_screen.dart';
+import '../widgets/custom_button.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback onLogout;
@@ -142,132 +144,156 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showStealthDialog() {
-    final phraseCtrl      = TextEditingController();
-    final alertCtrl       = TextEditingController();
-    final recStartCtrl    = TextEditingController();
-    final recStopCtrl     = TextEditingController();
+    final theme = Theme.of(context);
+    final phraseCtrl = TextEditingController(text: StealthModeService.secretPhrase);
+    final alertCtrl = TextEditingController(text: StealthModeService.alertKeyword);
+    final recStartCtrl = TextEditingController(text: StealthModeService.recordStartKeyword);
+    final recStopCtrl = TextEditingController(text: StealthModeService.recordStopKeyword);
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: theme.scaffoldBackgroundColor,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.88,
-        minChildSize: 0.5,
-        maxChildSize: 0.95,
-        builder: (_, scrollCtrl) => ListView(
-          controller: scrollCtrl,
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-            left: 20, right: 20, top: 20,
-          ),
-          children: [
-            // Handle
-            Center(
-              child: Container(
-                width: 36, height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) => DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.9,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          builder: (_, scrollCtrl) => ListView(
+            controller: scrollCtrl,
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+              left: 24,
+              right: 24,
+              top: 12,
+            ),
+            children: [
+              // Handle
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: theme.dividerColor,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            const Text('Enable Stealth Mode',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 4),
-            Text('App will disguise as a Notes screen. '
-                'Configure keywords to trigger actions silently.',
-                style: TextStyle(color: Colors.grey[600], fontSize: 13, height: 1.4)),
-            const SizedBox(height: 22),
+              const SizedBox(height: 24),
 
-            // ── Section: Stealth Mode ─────────────────────────────────
-            _DialogSection(label: 'STEALTH MODE', color: Colors.blueGrey),
-            const SizedBox(height: 10),
-            TextField(
-              controller: phraseCtrl,
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Unlock Phrase *',
-                hintText: 'e.g. sunshine123',
-                helperText: 'Type exactly this in Notes to exit stealth mode',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.lock_outline),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Stealth Protection',
+                            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 4),
+                        Text('Always launch into "Notes" disguise',
+                            style: theme.textTheme.bodyMedium?.copyWith(color: theme.hintColor)),
+                      ],
+                    ),
+                  ),
+                  Switch(
+                    value: StealthModeService.isProtectionEnabled,
+                    activeColor: AppTheme.rose,
+                    onChanged: (val) async {
+                      await StealthModeService.setStealthProtection(val);
+                      setModalState(() {});
+                      setState(() {}); // Refresh home screen
+                    },
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 20),
+              const SizedBox(height: 12),
+              const Divider(),
+              const SizedBox(height: 12),
 
-            // ── Section: Emergency Trigger ────────────────────────────
-            _DialogSection(label: 'EMERGENCY TRIGGER', color: Colors.red),
-            const SizedBox(height: 10),
-            TextField(
-              controller: alertCtrl,
-              decoration: InputDecoration(
-                labelText: 'Alert Keyword (Optional)',
-                hintText: 'e.g. redrose',
-                helperText: 'Typing + saving this word sends a silent emergency alert',
-                helperStyle: TextStyle(color: Colors.red[400], fontSize: 11),
-                border: const OutlineInputBorder(),
-                prefixIcon: const Icon(Icons.crisis_alert_rounded, color: Colors.red),
+              // ── Section: Stealth Mode ─────────────────────────────────
+              _DialogSection(label: 'SECURITY PHRASE', color: AppTheme.primaryColor),
+              const SizedBox(height: 16),
+              TextField(
+                controller: phraseCtrl,
+                obscureText: true,
+                decoration: InputDecoration(
+                  labelText: 'Unlock Phrase *',
+                  hintText: 'e.g. sunshine123',
+                  helperText: 'Type this in the "Notes" screen to reveal the app',
+                  prefixIcon: const Icon(Icons.password_rounded),
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
+              const SizedBox(height: 24),
 
-            // ── Section: Audio Evidence ───────────────────────────────
-            _DialogSection(label: 'AUDIO EVIDENCE', color: Colors.purple),
-            const SizedBox(height: 10),
-            TextField(
-              controller: recStartCtrl,
-              decoration: InputDecoration(
-                labelText: 'Start Recording Keyword (Optional)',
-                hintText: 'e.g. record',
-                helperText: 'Typing + saving this word starts silent audio recording',
-                helperStyle: TextStyle(color: Colors.purple[400], fontSize: 11),
-                border: const OutlineInputBorder(),
-                prefixIcon: const Icon(Icons.fiber_manual_record, color: Colors.purple),
+              // ── Section: Emergency Trigger ────────────────────────────
+              _DialogSection(label: 'SILENT TRIGGERS', color: AppTheme.rose),
+              const SizedBox(height: 16),
+              TextField(
+                controller: alertCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Alert Keyword (Optional)',
+                  hintText: 'e.g. apple',
+                  helperText: 'Typing this word automatically sends an emergency SOS',
+                  prefixIcon: const Icon(Icons.priority_high_rounded),
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: recStopCtrl,
-              decoration: InputDecoration(
-                labelText: 'Stop Recording Keyword (Optional)',
-                hintText: 'e.g. stop',
-                helperText: 'Typing + saving this word stops and saves the recording',
-                helperStyle: TextStyle(color: Colors.purple[400], fontSize: 11),
-                border: const OutlineInputBorder(),
-                prefixIcon: const Icon(Icons.stop_circle_outlined, color: Colors.purple),
-              ),
-            ),
-            const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
-            ElevatedButton(
-              onPressed: () {
-                final phrase = phraseCtrl.text.trim();
-                if (phrase.isEmpty) return;
-                StealthModeService.enableStealthMode(
-                  phrase,
-                  alertKeyword:       alertCtrl.text.trim(),
-                  recordStartKeyword: recStartCtrl.text.trim(),
-                  recordStopKeyword:  recStopCtrl.text.trim(),
-                );
-                Navigator.pop(ctx);
-              },
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              TextField(
+                controller: recStartCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Record Start Keyword',
+                  hintText: 'e.g. red',
+                  helperText: 'Keyword to start silent background recording',
+                  prefixIcon: const Icon(Icons.radio_button_checked_rounded),
+                ),
               ),
-              child: const Text('Enable Stealth Mode'),
-            ),
-            const SizedBox(height: 8),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
-            ),
-          ],
+              const SizedBox(height: 20),
+              TextField(
+                controller: recStopCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Record Stop Keyword',
+                  hintText: 'e.g. green',
+                  helperText: 'Keyword to stop and safely save recording',
+                  prefixIcon: const Icon(Icons.stop_circle_rounded),
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              CustomButton(
+                label: 'Save Configuration',
+                onPressed: () async {
+                  final phrase = phraseCtrl.text.trim();
+                  if (phrase.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please enter an unlock phrase'))
+                    );
+                    return;
+                  }
+                  await StealthModeService.enableStealthMode(
+                    phrase,
+                    alertKeyword: alertCtrl.text.trim(),
+                    recordStartKeyword: recStartCtrl.text.trim(),
+                    recordStopKeyword: recStopCtrl.text.trim(),
+                  );
+                  if (mounted) {
+                    Navigator.pop(ctx);
+                    setState(() {});
+                  }
+                },
+              ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text('Cancel', style: TextStyle(color: theme.hintColor)),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -355,10 +381,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 _FeatureCard(
                   icon: Icons.visibility_off_rounded,
-                  color: AppTheme.rose,
+                  color: StealthModeService.isProtectionEnabled ? AppTheme.rose : theme.hintColor,
                   title: 'Stealth Mode',
-                  subtitle: 'Disguise app',
-                  onTap: _showStealthDialog,
+                  subtitle: StealthModeService.isProtectionEnabled ? 'Protected' : 'Inactive',
+                  onTap: () => _showStealthDialog(),
                 ),
               ],
             ),

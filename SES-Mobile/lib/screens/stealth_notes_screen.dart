@@ -52,7 +52,7 @@ class _StealthNotesScreenState extends State<StealthNotesScreen> {
     if (phrase.isNotEmpty && text.endsWith(phrase)) {
       _vibrate(100);
       _controller.clear();
-      StealthModeService.disableStealthMode();
+      StealthModeService.exitDisguise();
       return;
     }
 
