@@ -1,0 +1,131 @@
+{
+  "client": "Thunder Client",
+  "collectionName": "Silent Emergency Shield API",
+  "dateExport": "2024-01-15",
+  "version": "1.1",
+  "folders": [
+    {
+      "name": "Authentication",
+      "requests": [
+        {
+          "name": "Register User",
+          "method": "POST",
+          "url": "{{base_url}}/api/auth/register",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "body": {
+            "raw": {
+              "name": "Alice Johnson",
+              "email": "alice@example.com",
+              "password": "SecurePass123",
+              "phone": "9876543210"
+            }
+          },
+          "notes": "Register a new user with name, email, password, and phone (10 digits)"
+        },
+        {
+          "name": "Login User",
+          "method": "POST",
+          "url": "{{base_url}}/api/auth/login",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "body": {
+            "raw": {
+              "email": "alice@example.com",
+              "password": "SecurePass123"
+            }
+          },
+          "notes": "Login with email and password. Save the token returned for other requests."
+        }
+      ]
+    },
+    {
+      "name": "Emergency Contacts",
+      "requests": [
+        {
+          "name": "Add Emergency Contact",
+          "method": "POST",
+          "url": "{{base_url}}/api/contacts/add",
+          "headers": {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer {{token}}"
+          },
+          "body": {
+            "raw": {
+              "name": "Mom - Sarah Johnson",
+              "phone": "9876543211",
+              "relation": "Family",
+              "email": "mom@example.com",
+              "priority": 1
+            }
+          },
+          "notes": "Requires JWT token. Phone must be 10 digits. Priority 1-10 (1 = highest)."
+        },
+        {
+          "name": "Get All Contacts",
+          "method": "GET",
+          "url": "{{base_url}}/api/contacts",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          },
+          "notes": "Retrieve all emergency contacts for the logged-in user. Sorted by priority."
+        },
+        {
+          "name": "Update Contact",
+          "method": "PUT",
+          "url": "{{base_url}}/api/contacts/{{contact_id}}",
+          "headers": {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer {{token}}"
+          },
+          "body": {
+            "raw": {
+              "name": "Mom Updated",
+              "priority": 1
+            }
+          },
+          "notes": "Update contact details. Only owner can update."
+        },
+        {
+          "name": "Delete Contact",
+          "method": "DELETE",
+          "url": "{{base_url}}/api/contacts/{{contact_id}}",
+          "headers": {
+            "Authorization": "Bearer {{token}}"
+          },
+          "notes": "Delete a contact. Only owner can delete."
+        }
+      ]
+    },
+    {
+      "name": "Server",
+      "requests": [
+        {
+          "name": "Health Check",
+          "method": "GET",
+          "url": "{{base_url}}/health",
+          "notes": "Check if server is running"
+        }
+      ]
+    }
+  ],
+  "variables": [
+    {
+      "name": "base_url",
+      "value": "http://localhost:5000",
+      "enabled": true
+    },
+    {
+      "name": "token",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "name": "contact_id",
+      "value": "",
+      "enabled": true
+    }
+  ]
+}
