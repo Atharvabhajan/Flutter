@@ -14,11 +14,20 @@ const fs = require("fs");
  */
 
 const THREAT_KEYWORDS = {
-  "help":     3,
-  "save me":  3,
-  "leave me": 3,
-  "danger":   2,
-  "stop":     2,
+  "help":         3,
+  "save me":      3,
+  "leave me":     3,
+  "danger":       2,
+  "stop":         2,
+  "emergency":    3,
+  "police":       3,
+  "killing":      3,
+  "killed":       3,
+  "please not":   2,
+  "please don't": 3,
+  "no no no":     3,
+  "stop it":      2,
+  "murder":       3,
 };
 
 // Minimum score required to trigger an emergency
@@ -88,6 +97,10 @@ const convertAudioToText = async (filePath) => {
     "Someone stop this person immediately",
     "I need help this is a dangerous situation",
     "Leave me alone this is dangerous",
+    "Stop it please not today no no no",
+    "They are killing someone help me",
+    "I need the police there is a murder happening",
+    "Emergency help me please don't do this",
   ];
 
   const transcript = mockTranscripts[Math.floor(Math.random() * mockTranscripts.length)];
