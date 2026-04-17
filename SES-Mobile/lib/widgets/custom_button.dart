@@ -17,15 +17,19 @@ class CustomButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: backgroundColor ?? AppTheme.primaryColor,
-          padding: const EdgeInsets.symmetric(vertical: 14),
+          backgroundColor: backgroundColor ?? theme.colorScheme.primary,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
           ),
+          elevation: 0,
         ),
         onPressed: isLoading ? null : onPressed,
         child: isLoading
@@ -40,9 +44,9 @@ class CustomButton extends StatelessWidget {
             : Text(
                 label,
                 style: const TextStyle(
-                  color: Colors.white,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
                 ),
               ),
       ),

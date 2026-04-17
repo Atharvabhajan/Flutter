@@ -40,7 +40,7 @@ class _PolicyScreenState extends State<PolicyScreen> {
           context: context,
           builder: (context) => AlertDialog(
             title: const Text('Permissions Required'),
-            content: const Text('Silent Emergency Shield requires Location and Microphone access to function properly. Please enable them in settings if permanently denied.'),
+            content: const Text('VeilNote requires Location and Microphone access to function properly. Please enable them in settings if permanently denied.'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
@@ -77,112 +77,118 @@ class _PolicyScreenState extends State<PolicyScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
               Text(
                 'Security Setup',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.textColor,
-                ),
+                style: theme.textTheme.headlineLarge,
               ),
               const SizedBox(height: 8),
               Text(
-                'Before using Silent Emergency Shield, please understand how we use device features to keep you safe.',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: AppTheme.hintColor,
-                ),
+                'Before using VeilNote, please understand how we use device features to keep you safe.',
+                style: theme.textTheme.bodyMedium,
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 32),
               Expanded(
                 child: ListView(
-                  children: const [
+                  physics: const BouncingScrollPhysics(),
+                  children: [
                     _PolicyItem(
-                      icon: Icons.location_on,
+                      icon: Icons.location_on_rounded,
                       title: 'Location Access',
                       description: 'Used to send your live location during emergencies.',
                     ),
                     _PolicyItem(
-                      icon: Icons.mic,
+                      icon: Icons.mic_rounded,
                       title: 'Microphone Access',
                       description: 'Used for voice-based threat detection.',
                     ),
                     _PolicyItem(
-                      icon: Icons.run_circle,
-                      title: 'Background Execution',
-                      description: 'Ensures emergency triggers work even when the app is closed.',
+                      icon: Icons.offline_bolt_rounded,
+                      title: 'Background Stability',
+                      description: 'Ensures safety triggers work even when the app is minimized.',
                     ),
                   ],
                 ),
               ),
-              if (!_permissionsGranted)
-                Center(
-                  child: ElevatedButton.icon(
-                    onPressed: _requestPermissions,
-                    icon: const Icon(Icons.security),
-                    label: const Text('Grant Required Permissions'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              
+              // ── Permission Status ──────────────────────────────────────────
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: _permissionsGranted 
+                    ? AppTheme.emerald.withValues(alpha: 0.1)
+                    : theme.colorScheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: _permissionsGranted 
+                      ? AppTheme.emerald.withValues(alpha: 0.2)
+                      : theme.colorScheme.primary.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      _permissionsGranted ? Icons.check_circle_rounded : Icons.security_rounded,
+                      color: _permissionsGranted ? AppTheme.emerald : theme.colorScheme.primary,
                     ),
-                  ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        _permissionsGranted 
+                          ? 'All systems ready. You are protected.' 
+                          : 'Vehicle requires security permissions to start shielding.',
+                        style: TextStyle(
+                          color: _permissionsGranted ? AppTheme.emerald : theme.colorScheme.primary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                    if (!_permissionsGranted)
+                      TextButton(
+                        onPressed: _requestPermissions,
+                        child: const Text('Grant'),
+                      ),
+                  ],
                 ),
-              if (_permissionsGranted)
-                Center(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.check_circle, color: Colors.green),
-                      const SizedBox(width: 8),
-                      Text('All required permissions granted', 
-                        style: TextStyle(color: Colors.green[700], fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                ),
-              const SizedBox(height: 20),
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // ── Agreement ──────────────────────────────────────────────────
               Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Checkbox(
                     value: _isAgreed,
-                    onChanged: (val) {
-                      setState(() {
-                        _isAgreed = val ?? false;
-                      });
-                    },
-                    activeColor: AppTheme.primaryColor,
+                    onChanged: (val) => setState(() => _isAgreed = val ?? false),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                   ),
                   Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 10.0),
-                      child: Text(
-                        'I agree to the privacy policy and emergency audio recording',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: AppTheme.textColor,
-                        ),
-                      ),
+                    child: Text(
+                      'I understand and agree to the protection protocols',
+                      style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: CustomButton(
-                  label: 'Continue',
-                  onPressed: (_isAgreed && _permissionsGranted) ? _onContinue : () {},
-                ),
+              CustomButton(
+                label: 'Initialize VeilNote',
+                onPressed: (_isAgreed && _permissionsGranted) ? _onContinue : () {},
+                backgroundColor: (_isAgreed && _permissionsGranted) ? null : theme.hintColor.withValues(alpha: 0.2),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
             ],
           ),
         ),

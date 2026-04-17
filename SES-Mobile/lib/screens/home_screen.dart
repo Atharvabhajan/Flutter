@@ -279,31 +279,31 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme  = Theme.of(context);
     final isReal = PracticeService.isRealMode;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text(
-          'Silent Emergency Shield',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
-        ),
-        centerTitle: false,
-        elevation: 0,
+        title: Text('VeilNote', style: theme.textTheme.titleLarge),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout_outlined),
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => _navigate(const SettingsScreen()),
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout_rounded),
             tooltip: 'Logout',
             onPressed: _logout,
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Mode Status ─────────────────────────────────────────────
+            // ── Mode Indicator ───────────────────────────────────────────
             _ModeBanner(
               isReal: isReal,
               onToggle: (val) async {
@@ -311,85 +311,76 @@ class _HomeScreenState extends State<HomeScreen> {
                 setState(() {});
               },
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
 
-            // ── SOS Button ──────────────────────────────────────────────
+            // ── Quick SOS Section ────────────────────────────────────────
             _SOSButton(
               isReal:     isReal,
               triggering: _triggering,
               onTap:      _triggerEmergency,
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 32),
 
-            // ── Features Grid ───────────────────────────────────────────
-            _SectionLabel(label: 'Features'),
-            const SizedBox(height: 12),
+            // ── Feature Grid ─────────────────────────────────────────────
+            _SectionHeader(title: 'Safety Controls'),
+            const SizedBox(height: 16),
             GridView.count(
               crossAxisCount: 2,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 1.25,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: 1.1,
               children: [
                 _FeatureCard(
                   icon: Icons.mic_rounded,
-                  color: Colors.blue,
+                  color: AppTheme.primaryColor,
                   title: 'Audio Analysis',
-                  subtitle: 'Record & detect threats',
+                  subtitle: 'Real-time detection',
                   onTap: () => _navigate(AudioRecordingScreen(onRecordingComplete: _loadContacts)),
                 ),
                 _FeatureCard(
                   icon: Icons.folder_special_rounded,
-                  color: Colors.deepPurple,
-                  title: 'Evidence Recorder',
-                  subtitle: 'Secure audio storage',
+                  color: AppTheme.primaryDeep,
+                  title: 'Evidence',
+                  subtitle: 'Secure recordings',
                   onTap: () => _navigate(const EvidenceRecorderScreen()),
                 ),
                 _FeatureCard(
                   icon: Icons.school_rounded,
-                  color: Colors.teal,
-                  title: 'Practice Guide',
-                  subtitle: 'Learn volume trigger',
+                  color: AppTheme.emerald,
+                  title: 'Practice',
+                  subtitle: 'Simulate triggers',
                   onTap: () => _navigate(const PracticeModeScreen()),
                 ),
                 _FeatureCard(
-                  icon: Icons.settings_rounded,
-                  color: Colors.orange,
-                  title: 'Settings',
-                  subtitle: 'Telegram & bot setup',
-                  onTap: () => _navigate(const SettingsScreen()),
+                  icon: Icons.visibility_off_rounded,
+                  color: AppTheme.rose,
+                  title: 'Stealth Mode',
+                  subtitle: 'Disguise app',
+                  onTap: _showStealthDialog,
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 32),
 
-            // ── Stealth Mode ─────────────────────────────────────────────
-            _StealthCard(onTap: _showStealthDialog),
-            const SizedBox(height: 28),
-
-            // ── Emergency Contacts ───────────────────────────────────────
+            // ── Emergency Network ────────────────────────────────────────
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _SectionLabel(label: 'Emergency Contacts'),
-                Row(children: [
-                  if (_contacts.isNotEmpty)
-                    TextButton(
-                      onPressed: () => Navigator.of(context)
-                          .push(MaterialPageRoute(builder: (_) => const ContactListScreen()))
-                          .then((_) => _loadContacts()),
-                      child: const Text('View All'),
-                    ),
-                  IconButton(
-                    icon: const Icon(Icons.refresh, size: 20),
-                    onPressed: _loadContacts,
+                _SectionHeader(title: 'Safety Network'),
+                if (_contacts.isNotEmpty)
+                  TextButton(
+                    onPressed: () => Navigator.of(context)
+                        .push(MaterialPageRoute(builder: (_) => const ContactListScreen()))
+                        .then((_) => _loadContacts()),
+                    child: const Text('Manage All'),
                   ),
-                ]),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             _buildContactSection(),
+            const SizedBox(height: 100),
           ],
         ),
       ),
@@ -397,8 +388,9 @@ class _HomeScreenState extends State<HomeScreen> {
         onPressed: () => Navigator.of(context).push(MaterialPageRoute(
           builder: (_) => AddContactScreen(onContactAdded: _loadContacts),
         )),
-        icon: const Icon(Icons.person_add_rounded),
-        label: const Text('Add Contact'),
+        icon: const Icon(Icons.add_moderator_rounded),
+        label: const Text('Add Guardian'),
+        elevation: 2,
       ),
     );
   }
@@ -444,45 +436,46 @@ class _ModeBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final baseColor = isReal ? AppTheme.rose : AppTheme.amber;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: isReal ? Colors.red.shade50 : Colors.amber.shade50,
+        color: baseColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isReal ? Colors.red.shade200 : Colors.amber.shade300,
-        ),
+        border: Border.all(color: baseColor.withValues(alpha: 0.2)),
       ),
       child: Row(children: [
         Icon(
-          isReal ? Icons.shield_rounded : Icons.science_rounded,
-          color: isReal ? Colors.red[700] : Colors.amber[800],
-          size: 22,
+          isReal ? Icons.gpp_good_rounded : Icons.psychology_rounded,
+          color: baseColor,
+          size: 24,
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 12),
         Expanded(child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              isReal ? 'Real Emergency Mode' : 'Practice Mode',
+              isReal ? 'Active Protection' : 'Practice Mode',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                fontSize: 13,
-                color: isReal ? Colors.red[800] : Colors.amber[900],
+                fontSize: 14,
+                color: baseColor,
               ),
             ),
             Text(
-              isReal ? 'Triggers send real alerts to contacts' : 'Triggers are simulated — safe to practice',
+              isReal ? 'Alerts are LIVE' : 'Safe to test triggers',
               style: TextStyle(
-                fontSize: 11,
-                color: isReal ? Colors.red[600] : Colors.amber[700],
+                fontSize: 12,
+                color: baseColor.withValues(alpha: 0.8),
               ),
             ),
           ],
         )),
         Switch(
           value: isReal,
-          activeThumbColor: Colors.red,
+          activeColor: AppTheme.rose,
           onChanged: onToggle,
         ),
       ]),
@@ -498,45 +491,45 @@ class _SOSButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = isReal ? AppTheme.rose : theme.hintColor;
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 28),
+      padding: const EdgeInsets.symmetric(vertical: 36),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isReal
-              ? [Colors.red.shade600, Colors.red.shade800]
-              : [Colors.grey.shade500, Colors.grey.shade700],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
+        color: theme.cardTheme.color,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: color.withValues(alpha: 0.3), width: 1.5),
         boxShadow: [
-          BoxShadow(
-            color: (isReal ? Colors.red : Colors.grey).withValues(alpha: 0.35),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
+          if (isReal)
+            BoxShadow(
+              color: color.withValues(alpha: 0.1),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
         ],
       ),
       child: Column(children: [
         GestureDetector(
           onTap: triggering ? null : onTap,
-          child: Container(
-            width: 100,
-            height: 100,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            width: 120,
+            height: 120,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.white.withValues(alpha: 0.15),
-              border: Border.all(color: Colors.white, width: 3),
+              color: color.withValues(alpha: 0.1),
+              border: Border.all(color: color, width: 4),
             ),
             child: triggering
-                ? const Center(child: CircularProgressIndicator(color: Colors.white))
-                : const Center(
+                ? Center(child: CircularProgressIndicator(color: color))
+                : Center(
                     child: Text(
                       'SOS',
                       style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 28,
+                        color: color,
+                        fontSize: 32,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 2,
                       ),
@@ -544,34 +537,35 @@ class _SOSButton extends StatelessWidget {
                   ),
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 20),
         Text(
-          triggering ? 'Sending alert…' : 'Tap to trigger emergency',
-          style: const TextStyle(color: Colors.white, fontSize: 13),
+          triggering ? 'Sending alert…' : 'Trigger Emergency',
+          style: theme.textTheme.titleLarge?.copyWith(color: color, fontSize: 18),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         Text(
-          isReal ? 'Will alert all your contacts' : 'Practice mode — no real alert',
-          style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 11),
+          isReal ? 'Push to alert all contacts' : 'Draft / Test Mode',
+          style: theme.textTheme.bodyMedium,
         ),
       ]),
     );
   }
 }
 
-class _SectionLabel extends StatelessWidget {
-  final String label;
-  const _SectionLabel({required this.label});
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  const _SectionHeader({required this.title});
 
   @override
-  Widget build(BuildContext context) => Text(
-        label,
-        style: const TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.bold,
-          color: Colors.black87,
-        ),
-      );
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+        fontWeight: FontWeight.bold,
+        letterSpacing: -0.5,
+      ),
+    );
+  }
 }
 
 class _FeatureCard extends StatelessWidget {
@@ -591,40 +585,38 @@ class _FeatureCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.grey.shade200),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(8),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: color, size: 26),
               ),
-              child: Icon(icon, color: color, size: 22),
-            ),
-            const Spacer(),
-            Text(title,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-            const SizedBox(height: 2),
-            Text(subtitle,
-                style: TextStyle(color: Colors.grey[500], fontSize: 11)),
-          ],
+              const Spacer(),
+              Text(
+                title,
+                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, height: 1.1),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: theme.textTheme.bodySmall,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -637,28 +629,32 @@ class _StealthCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         decoration: BoxDecoration(
-          color: Colors.blueGrey.shade800,
-          borderRadius: BorderRadius.circular(14),
+          color: theme.brightness == Brightness.dark 
+            ? theme.colorScheme.primary.withValues(alpha: 0.15)
+            : AppTheme.primaryDeep,
+          borderRadius: BorderRadius.circular(20),
         ),
         child: Row(children: [
-          const Icon(Icons.visibility_off_rounded, color: Colors.white, size: 24),
-          const SizedBox(width: 14),
-          const Expanded(child: Column(
+          const Icon(Icons.visibility_off_rounded, color: Colors.white, size: 28),
+          const SizedBox(width: 16),
+          Expanded(child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Stealth Mode',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              SizedBox(height: 2),
-              Text('Disguise app as a Notes screen',
-                  style: TextStyle(color: Colors.white60, fontSize: 12)),
+              Text('Switch to Stealth Mode',
+                  style: theme.textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 2),
+              const Text('Toggle the notes-app disguise',
+                  style: TextStyle(color: Colors.white70, fontSize: 13)),
             ],
           )),
-          const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white38, size: 16),
+          const Icon(Icons.chevron_right_rounded, color: Colors.white54, size: 24),
         ]),
       ),
     );
@@ -671,63 +667,66 @@ class _ContactCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final hasTelegram = contact.telegramChatId != null && contact.telegramChatId!.isNotEmpty;
+    
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        color: theme.cardTheme.color,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.5)),
       ),
       child: Row(children: [
         CircleAvatar(
-          radius: 20,
-          backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.12),
+          radius: 24,
+          backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
           child: Text(
             contact.name[0].toUpperCase(),
             style: TextStyle(
-              color: AppTheme.primaryColor,
+              color: theme.colorScheme.primary,
               fontWeight: FontWeight.bold,
+              fontSize: 18,
             ),
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 16),
         Expanded(child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(contact.name,
-                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-            const SizedBox(height: 2),
-            Text('${contact.relation} · ${contact.phone}',
-                style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text('${contact.relation} • ${contact.phone}',
+                style: theme.textTheme.bodySmall),
           ],
         )),
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(20),
+                color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: Text('P${contact.priority}',
+              child: Text('Priority ${contact.priority}',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryColor,
+                    color: theme.colorScheme.primary,
                   )),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
             if (hasTelegram)
               Row(children: [
-                Icon(Icons.telegram, size: 14, color: Colors.blue[600]),
-                const SizedBox(width: 2),
-                Text('Telegram', style: TextStyle(fontSize: 10, color: Colors.blue[600])),
+                Icon(Icons.telegram, size: 16, color: Colors.blue[600]),
+                const SizedBox(width: 4),
+                Text('Secure', style: TextStyle(fontSize: 11, color: Colors.blue[600], fontWeight: FontWeight.w600)),
               ])
             else
-              Text('No Telegram', style: TextStyle(fontSize: 10, color: Colors.grey[400])),
+              Text('SMS Only', style: theme.textTheme.bodySmall),
           ],
         ),
       ]),

@@ -4,9 +4,9 @@ import 'package:geolocator/geolocator.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import 'package:vibration/vibration.dart';
-import '../services/stealth_mode_service.dart';
 import '../services/emergency_service.dart';
 import '../services/audio_upload_queue.dart';
+import '../config/app_theme.dart';
 
 class StealthNotesScreen extends StatefulWidget {
   const StealthNotesScreen({Key? key}) : super(key: key);
@@ -39,23 +39,71 @@ class _StealthNotesScreenState extends State<StealthNotesScreen> {
     super.dispose();
   }
 
-  // ── Real-time unlock phrase detection ────────────────────────────────────────
+  // ── Real-time keyword & phrase detection ───────────────────────────────────
   void _onTextChanged() async {
-    final text   = _controller.text;
+    final text = _controller.text;
+    if (text.isEmpty) return;
+
+    final lower = text.toLowerCase();
+
+    // 1. Secret Unlock Phrase
     final phrase = StealthModeService.secretPhrase;
     if (phrase.isNotEmpty && text.endsWith(phrase)) {
-      if (await Vibration.hasVibrator() ?? false) {
-        Vibration.vibrate(duration: 100);
-      }
+      _vibrate(100);
       _controller.clear();
       StealthModeService.disableStealthMode();
+      return;
+    }
+
+    // 2. Alert Keyword
+    final alertKw = StealthModeService.alertKeyword;
+    if (alertKw.isNotEmpty && lower.endsWith(alertKw)) {
+      _vibrate(200);
+      _removeKeywordFromController(alertKw);
+      _triggerEmergency();
+      return;
+    }
+
+    // 3. Audio Start Keyword
+    final startKw = StealthModeService.recordStartKeyword;
+    if (startKw.isNotEmpty && lower.endsWith(startKw) && !_isRecording) {
+      _vibrate(150);
+      _removeKeywordFromController(startKw);
+      _startRecording();
+      return;
+    }
+
+    // 4. Audio Stop Keyword
+    final stopKw = StealthModeService.recordStopKeyword;
+    if (stopKw.isNotEmpty && lower.endsWith(stopKw) && _isRecording) {
+      _vibrate(100);
+      Future.delayed(const Duration(milliseconds: 150), () => _vibrate(100)); // Double pulse
+      _removeKeywordFromController(stopKw);
+      _stopRecording();
+      return;
+    }
+  }
+
+  void _vibrate(int duration) async {
+    if (await Vibration.hasVibrator() ?? false) {
+      Vibration.vibrate(duration: duration);
+    }
+  }
+
+  void _removeKeywordFromController(String keyword) {
+    final text = _controller.text;
+    if (text.toLowerCase().endsWith(keyword)) {
+      final newText = text.substring(0, text.length - keyword.length).trimRight();
+      _controller.value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: newText.length),
+      );
     }
   }
 
   // ── Save button ───────────────────────────────────────────────────────────────
   Future<void> _onSave() async {
-    final input = _controller.text.trim();
-    await _processStealthInput(input);
+    // Manual save only saves the text state, keywords are processed real-time
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -67,26 +115,7 @@ class _StealthNotesScreenState extends State<StealthNotesScreen> {
     }
   }
 
-  // ── Core keyword processing ───────────────────────────────────────────────────
-  Future<void> _processStealthInput(String input) async {
-    if (input.isEmpty) return;
-    final lower = input.toLowerCase();
-
-    final startKw = StealthModeService.recordStartKeyword;
-    final stopKw  = StealthModeService.recordStopKeyword;
-
-    // Case 1: start recording audio (via keyword in notes)
-    if (startKw.isNotEmpty && lower.contains(startKw) && !_isRecording) {
-      await _startRecording();
-      return;
-    }
-
-    // Case 2: stop recording audio (via keyword in notes)
-    if (stopKw.isNotEmpty && lower.contains(stopKw) && _isRecording) {
-      await _stopRecording();
-      return;
-    }
-  }
+  // Redundant keyword processing removed. Triggers are now real-time.
 
   // ── Silent emergency dispatch ─────────────────────────────────────────────────
   Future<void> _triggerEmergency() async {
@@ -122,10 +151,11 @@ class _StealthNotesScreenState extends State<StealthNotesScreen> {
 
       final dir  = await getApplicationDocumentsDirectory();
       final now  = DateTime.now();
-      final name = 'stealth_${now.year}-${_p(now.month)}-${_p(now.day)}'
+      // Filename starts with 'evidence_' so it appears in the Evidence section
+      final name = 'evidence_${now.year}-${_p(now.month)}-${_p(now.day)}'
                    '_${_p(now.hour)}-${_p(now.minute)}-${_p(now.second)}.m4a';
       final path = '${dir.path}/$name';
-      _recordingPath = path;  // ← Store path for later upload
+      _recordingPath = path;
 
       await _recorder.start(
         const RecordConfig(
@@ -136,14 +166,14 @@ class _StealthNotesScreenState extends State<StealthNotesScreen> {
         path: path,
       );
 
-      _isRecording = true;
+      setState(() => _isRecording = true);
 
-      // Auto-stop after 5 minutes max
-      _maxDurTimer = Timer(const Duration(minutes: 5), () {
+      // Auto-stop after 10 minutes max for stealth recording
+      _maxDurTimer = Timer(const Duration(minutes: 10), () {
         if (_isRecording) _stopRecording();
       });
     } catch (_) {
-      // Fail silently
+      // Fail silently in stealth mode
     }
   }
 
@@ -151,14 +181,13 @@ class _StealthNotesScreenState extends State<StealthNotesScreen> {
     try {
       _maxDurTimer?.cancel();
       await _recorder.stop();
-      _isRecording = false;
+      setState(() => _isRecording = false);
 
-      // Handle upload with retry queue
       if (_recordingPath.isNotEmpty) {
         unawaited(AudioUploadQueue.handleRecordingComplete(_recordingPath));
       }
     } catch (_) {
-      _isRecording = false;
+      setState(() => _isRecording = false);
     }
   }
 
@@ -167,22 +196,30 @@ class _StealthNotesScreenState extends State<StealthNotesScreen> {
   // ── UI ────────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Notes', style: TextStyle(color: Colors.black87)),
-        backgroundColor: Colors.white,
-        elevation: 1,
-        iconTheme: const IconThemeData(color: Colors.black87),
+        title: Text(
+          'Notes',
+          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w500),
+        ),
+        backgroundColor: theme.scaffoldBackgroundColor,
+        elevation: 0.5,
         actions: [
           TextButton(
             onPressed: _onSave,
-            child: const Text(
+            child: Text(
               'Save',
-              style: TextStyle(color: Colors.black54, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 8),
         ],
       ),
       body: SafeArea(
@@ -193,23 +230,26 @@ class _StealthNotesScreenState extends State<StealthNotesScreen> {
             maxLines: null,
             expands: true,
             autofocus: false,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               hintText: 'Type your notes here...',
-              hintStyle: TextStyle(color: Colors.black26),
+              hintStyle: TextStyle(color: theme.hintColor.withValues(alpha: 0.4)),
               border: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              filled: false,
             ),
-            style: const TextStyle(
-              fontSize: 17,
-              color: Colors.black87,
+            style: theme.textTheme.bodyLarge?.copyWith(
               height: 1.6,
+              fontSize: 18,
             ),
           ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _onSave,
-        backgroundColor: Colors.yellow[700],
-        child: const Icon(Icons.save_outlined, color: Colors.white),
+        backgroundColor: isDark ? AppTheme.amber : Colors.amber[700],
+        elevation: 4,
+        child: const Icon(Icons.edit_note_rounded, color: Colors.white),
       ),
     );
   }

@@ -62,52 +62,63 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.all(24.0),
+            padding: const EdgeInsets.symmetric(horizontal: 28.0),
             child: Form(
               key: _formKey,
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: 32),
-                  Icon(
-                    Icons.how_to_reg,
-                    size: 64,
-                    color: AppTheme.primaryColor,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Create Your Account',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textColor,
+                  const SizedBox(height: 50),
+                  // ── Branding / Header ──────────────────────────────────────
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: Icon(
+                        Icons.verified_user_rounded,
+                        size: 54,
+                        color: theme.colorScheme.primary,
+                      ),
                     ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Create Account',
+                    style: theme.textTheme.headlineLarge,
+                    textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Join us and stay safe',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: AppTheme.hintColor,
-                    ),
+                  Text(
+                    'Join the personal safety network',
+                    style: theme.textTheme.bodyMedium,
+                    textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 48),
+                  
+                  // ── Form Fields ───────────────────────────────────────────
                   CustomTextField(
                     label: 'Full Name',
-                    hintText: 'Enter your full name',
+                    hintText: 'Johnathan Doe',
                     controller: _nameController,
                     validator: (value) {
                       if (value?.isEmpty ?? true) return 'Name is required';
                       return null;
                     },
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   CustomTextField(
-                    label: 'Email',
-                    hintText: 'Enter your email',
+                    label: 'Email Address',
+                    hintText: 'your@email.com',
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     validator: (value) {
@@ -116,47 +127,52 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   CustomTextField(
-                    label: 'Phone',
-                    hintText: 'Enter 10-digit phone',
+                    label: 'Phone Number',
+                    hintText: '10-digit number',
                     controller: _phoneController,
                     keyboardType: TextInputType.phone,
                     validator: (value) {
                       if (value?.isEmpty ?? true) return 'Phone is required';
-                      if (value!.length != 10) return 'Phone must be 10 digits';
+                      if (value!.length != 10) return 'Enter 10-digit number';
                       return null;
                     },
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   CustomTextField(
-                    label: 'Password',
-                    hintText: 'Min 6 characters',
+                    label: 'New Password',
+                    hintText: '••••••••',
                     controller: _passwordController,
                     isPassword: true,
                     validator: (value) {
                       if (value?.isEmpty ?? true) return 'Password is required';
-                      if (value!.length < 6) return 'Min 6 characters';
+                      if (value!.length < 6) return 'Minimum 6 characters';
                       return null;
                     },
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 48),
+                  
+                  // ── Actions ────────────────────────────────────────────────
                   CustomButton(
-                    label: 'Register',
+                    label: 'Sign Up',
                     isLoading: _isLoading,
                     onPressed: _register,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text('Already have an account? '),
+                      Text(
+                        'Already protected? ',
+                        style: theme.textTheme.bodyMedium,
+                      ),
                       GestureDetector(
                         onTap: widget.onLoginTap,
-                        child: const Text(
+                        child: Text(
                           'Login',
                           style: TextStyle(
-                            color: AppTheme.primaryColor,
+                            color: theme.colorScheme.primary,
                             fontWeight: FontWeight.bold,
                           ),
                         ),

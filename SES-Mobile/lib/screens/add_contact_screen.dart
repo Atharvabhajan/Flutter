@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
+import '../widgets/custom_button.dart';
 import '../services/contact_service.dart';
 
 class AddContactScreen extends StatefulWidget {
@@ -169,86 +170,70 @@ class _AddContactScreenState extends State<AddContactScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Add Emergency Contact'),
+        title: Text('Add Guardian', style: theme.textTheme.titleLarge),
         elevation: 0,
       ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: const EdgeInsets.all(24.0),
           child: Form(
             key: _formKey,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Header text
-                const Text(
-                  'Add a new emergency contact to your list',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: AppTheme.hintColor,
-                  ),
+                Text(
+                  'Add a trusted contact who will receive alerts during emergencies.',
+                  style: theme.textTheme.bodyMedium,
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 32),
 
                 // ─── Name Field ───────────────────────────────────────────────
                 TextFormField(
                   controller: _nameController,
                   readOnly: _isLoading,
-                  decoration: InputDecoration(
-                    labelText: 'Name',
-                    hintText: 'e.g., John Doe',
-                    prefixIcon: const Icon(Icons.person),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Colors.grey),
-                    ),
+                  style: theme.textTheme.bodyLarge,
+                  decoration: const InputDecoration(
+                    labelText: 'Full Name',
+                    hintText: 'Johnathan Doe',
+                    prefixIcon: Icon(Icons.person_rounded),
                   ),
                   validator: _validateName,
                   textInputAction: TextInputAction.next,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
 
                 // ─── Phone Field ──────────────────────────────────────────────
                 TextFormField(
                   controller: _phoneController,
                   readOnly: _isLoading,
-                  decoration: InputDecoration(
+                  style: theme.textTheme.bodyLarge,
+                  decoration: const InputDecoration(
                     labelText: 'Phone Number',
-                    hintText: '1234567890',
-                    prefixIcon: const Icon(Icons.phone),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Colors.grey),
-                    ),
+                    hintText: '10-digit number',
+                    prefixIcon: Icon(Icons.phone_rounded),
+                    maxLength: 10,
+                    counterText: '', // Hide default counter
                   ),
                   validator: _validatePhone,
                   keyboardType: TextInputType.phone,
                   textInputAction: TextInputAction.next,
-                  maxLength: 10,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
 
                 // ─── Relation Dropdown ────────────────────────────────────────
                 DropdownButtonFormField<String>(
                   value: _selectedRelation,
-                  decoration: InputDecoration(
+                  dropdownColor: theme.cardTheme.color,
+                  style: theme.textTheme.bodyLarge,
+                  decoration: const InputDecoration(
                     labelText: 'Relation',
-                    prefixIcon: const Icon(Icons.people),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Colors.grey),
-                    ),
+                    prefixIcon: Icon(Icons.people_rounded),
                   ),
                   isExpanded: true,
                   items: _relationOptions.map((relation) {
@@ -263,71 +248,54 @@ class _AddContactScreenState extends State<AddContactScreen> {
                           setState(() => _selectedRelation = value ?? 'Other');
                         },
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
 
                 // ─── Email Field (Optional) ───────────────────────────────────
                 TextFormField(
                   controller: _emailController,
                   readOnly: _isLoading,
-                  decoration: InputDecoration(
-                    labelText: 'Email (Optional)',
-                    hintText: 'john@example.com',
-                    prefixIcon: const Icon(Icons.email),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Colors.grey),
-                    ),
+                  style: theme.textTheme.bodyLarge,
+                  decoration: const InputDecoration(
+                    labelText: 'Email Address (Optional)',
+                    hintText: 'your@email.com',
+                    prefixIcon: Icon(Icons.email_rounded),
                   ),
                   validator: _validateEmail,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
 
                 // ─── Telegram Chat ID Field (Optional) ────────────────────────
                 TextFormField(
                   controller: _telegramController,
                   readOnly: _isLoading,
-                  decoration: InputDecoration(
+                  style: theme.textTheme.bodyLarge,
+                  decoration: const InputDecoration(
                     labelText: 'Telegram Chat ID (Optional)',
-                    hintText: 'e.g., 123456789',
-                    prefixIcon: const Icon(Icons.message),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Colors.grey),
-                    ),
+                    hintText: 'Secure alert ID',
+                    prefixIcon: Icon(Icons.telegram_rounded),
                   ),
                   keyboardType: TextInputType.number,
                   textInputAction: TextInputAction.next,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
 
                 // ─── Priority Dropdown ────────────────────────────────────────
                 DropdownButtonFormField<int>(
                   value: _selectedPriority,
-                  decoration: InputDecoration(
-                    labelText: 'Priority',
-                    hintText: 'Select priority (1-10)',
-                    prefixIcon: const Icon(Icons.flag),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Colors.grey),
-                    ),
+                  dropdownColor: theme.cardTheme.color,
+                  style: theme.textTheme.bodyLarge,
+                  decoration: const InputDecoration(
+                    labelText: 'Safety Priority',
+                    hintText: '1 = Highest Priority',
+                    prefixIcon: Icon(Icons.priority_high_rounded),
                   ),
                   isExpanded: true,
                   items: _priorityOptions.map((priority) {
                     return DropdownMenuItem(
                       value: priority,
-                      child: Text(priority.toString()),
+                      child: Text('Priority $priority'),
                     );
                   }).toList(),
                   onChanged: _isLoading
@@ -336,56 +304,24 @@ class _AddContactScreenState extends State<AddContactScreen> {
                           setState(() => _selectedPriority = value ?? 1);
                         },
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 48),
 
                 // ─── Submit Button ────────────────────────────────────────────
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _submitForm,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryColor,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
-                        : const Text(
-                            'Add Contact',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                  ),
+                CustomButton(
+                  label: 'Add Guardian',
+                  isLoading: _isLoading,
+                  onPressed: _submitForm,
                 ),
                 const SizedBox(height: 16),
 
                 // ─── Cancel Button ────────────────────────────────────────────
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed:
-                        _isLoading ? null : () => Navigator.of(context).pop(),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: const Text('Cancel'),
+                TextButton(
+                  onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    foregroundColor: theme.hintColor,
                   ),
+                  child: const Text('Cancel Request'),
                 ),
               ],
             ),

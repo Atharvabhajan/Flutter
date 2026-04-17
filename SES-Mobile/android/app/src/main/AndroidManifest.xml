@@ -11,7 +11,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
     <application
-        android:label="silent_emergency_shield"
+        android:label="VeilNote"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

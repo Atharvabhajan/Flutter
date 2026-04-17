@@ -139,90 +139,108 @@ class _ContactListScreenState extends State<ContactListScreen> {
 
   /// Get priority color (higher priority = warmer color)
   Color _getPriorityColor(int priority) {
-    if (priority <= 2) return Colors.red.shade600; // High priority: red
-    if (priority <= 5) return Colors.orange.shade600; // Medium: orange
-    return Colors.green.shade600; // Low: green
+    if (priority <= 2) return AppTheme.rose;
+    if (priority <= 5) return AppTheme.amber;
+    return AppTheme.primaryColor;
   }
 
   /// Build a single contact card
   Widget _buildContactCard(EmergencyContact contact) {
-    return Card(
+    final theme = Theme.of(context);
+    final color = _getPriorityColor(contact.priority);
+    
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: _getPriorityColor(contact.priority),
-          child: Text(
-            contact.name[0].toUpperCase(),
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.cardTheme.color,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 24,
+            backgroundColor: color.withValues(alpha: 0.1),
+            child: Text(
+              contact.name[0].toUpperCase(),
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
             ),
           ),
-        ),
-        title: Text(
-          contact.name,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 4),
-            Text(
-              contact.phone,
-              style: TextStyle(color: Colors.grey[600]),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  contact.name,
+                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  contact.phone,
+                  style: theme.textTheme.bodyMedium,
+                ),
+                if (contact.relation.isNotEmpty)
+                  Text(
+                    contact.relation,
+                    style: theme.textTheme.bodySmall,
+                  ),
+              ],
             ),
-            if (contact.relation.isNotEmpty)
-              Text(
-                contact.relation,
-                style: TextStyle(color: Colors.grey[500], fontSize: 12),
-              ),
-          ],
-        ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: _getPriorityColor(contact.priority).withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                'P${contact.priority}',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: _getPriorityColor(contact.priority),
-                  fontSize: 12,
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  'Priority ${contact.priority}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                    fontSize: 11,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 4),
-            GestureDetector(
-              onTap: () => _showDeleteConfirmation(contact),
-              child: Icon(
-                Icons.delete,
-                color: Colors.red.shade600,
-                size: 20,
+              const SizedBox(height: 8),
+              IconButton(
+                onPressed: () => _showDeleteConfirmation(contact),
+                icon: Icon(
+                  Icons.delete_outline_rounded,
+                  color: theme.hintColor.withValues(alpha: 0.5),
+                  size: 22,
+                ),
+                visualDensity: VisualDensity.compact,
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Emergency Contacts'),
-        elevation: 0,
+        title: Text('Safety Network', style: theme.textTheme.titleLarge),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh_rounded),
             onPressed: _isLoading ? null : _loadContacts,
-            tooltip: 'Refresh contacts',
+            tooltip: 'Refresh network',
           ),
         ],
       ),
@@ -235,34 +253,39 @@ class _ContactListScreenState extends State<ContactListScreen> {
 
   /// Build the main body content
   Widget _buildBody() {
+    final theme = Theme.of(context);
+    
     // Show error state
     if (_errorMessage != null) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Colors.red.shade300,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Failed to load contacts',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _errorMessage!,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey[600]),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _loadContacts,
-              child: const Text('Retry'),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.cloud_off_rounded,
+                size: 64,
+                color: theme.colorScheme.error.withValues(alpha: 0.4),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Sync Failed',
+                style: theme.textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                _errorMessage!,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 32),
+              CustomButton(
+                label: 'Retry Connection',
+                onPressed: _loadContacts,
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -277,33 +300,35 @@ class _ContactListScreenState extends State<ContactListScreen> {
     // Show empty state
     if (_contacts.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.contacts_outlined,
-              size: 64,
-              color: Colors.grey[400],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No emergency contacts yet',
-              style: Theme.of(context).textTheme.titleLarge,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Add your first emergency contact to get started',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey[600]),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: Navigator.of(context).pop,
-              icon: const Icon(Icons.add),
-              label: const Text('Add Contact'),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.people_outline_rounded,
+                size: 80,
+                color: theme.hintColor.withValues(alpha: 0.2),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'No Guardians Yet',
+                style: theme.textTheme.headlineSmall,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Add trusted contacts who should receive alerts when you are in danger.',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 32),
+              CustomButton(
+                label: 'Add First Guardian',
+                onPressed: Navigator.of(context).pop,
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -312,18 +337,18 @@ class _ContactListScreenState extends State<ContactListScreen> {
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '${_contacts.length} contact${_contacts.length != 1 ? 's' : ''} • Sorted by priority',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 12,
+              '${_contacts.length} Guarded Connections • Priority Sorting',
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 20),
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),

@@ -68,44 +68,58 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.all(24.0),
+            padding: const EdgeInsets.symmetric(horizontal: 28.0),
             child: Form(
               key: _formKey,
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: 40),
-                  Icon(
-                    Icons.security,
-                    size: 80,
-                    color: AppTheme.primaryColor,
+                  const SizedBox(height: 60),
+                  // ─── Branding ──────────────────────────────────────────────
+                  Center(
+                    child: Image.asset(
+                      'assets/images/veil_note_logo.png',
+                      height: 100,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Icon(
+                          Icons.security_rounded,
+                          size: 60,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 24),
-                  const Text(
-                    'Silent Emergency Shield',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textColor,
-                    ),
+                  Text(
+                    'VeilNote',
+                    style: theme.textTheme.headlineLarge,
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'Stay Safe. Always Connected.',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: AppTheme.hintColor,
-                    ),
+                    style: theme.textTheme.bodyMedium,
+                    textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 48),
+                  const SizedBox(height: 54),
+                  
+                  // ─── Form Fields ───────────────────────────────────────────
                   CustomTextField(
                     label: 'Email',
-                    hintText: 'Enter your email',
+                    hintText: 'your@email.com',
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     validator: (value) {
@@ -114,35 +128,40 @@ class _LoginScreenState extends State<LoginScreen> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   CustomTextField(
                     label: 'Password',
-                    hintText: 'Enter your password',
+                    hintText: '••••••••',
                     controller: _passwordController,
                     isPassword: true,
                     validator: (value) {
                       if (value?.isEmpty ?? true) return 'Password is required';
-                      if (value!.length < 6) return 'Min 6 characters';
+                      if (value!.length < 6) return 'Minimum 6 characters';
                       return null;
                     },
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 48),
+                  
+                  // ─── Actions ────────────────────────────────────────────────
                   CustomButton(
-                    label: 'Login',
+                    label: 'Sign In',
                     isLoading: _isLoading,
                     onPressed: _login,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text('Don\'t have an account? '),
+                      Text(
+                        'Don\'t have an account? ',
+                        style: theme.textTheme.bodyMedium,
+                      ),
                       GestureDetector(
                         onTap: widget.onRegisterTap,
-                        child: const Text(
+                        child: Text(
                           'Register',
                           style: TextStyle(
-                            color: AppTheme.primaryColor,
+                            color: theme.colorScheme.primary,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
