@@ -217,9 +217,9 @@ class _AddContactScreenState extends State<AddContactScreen> {
                     labelText: 'Phone Number',
                     hintText: '10-digit number',
                     prefixIcon: Icon(Icons.phone_rounded),
-                    maxLength: 10,
                     counterText: '', // Hide default counter
                   ),
+                  maxLength: 10,
                   validator: _validatePhone,
                   keyboardType: TextInputType.phone,
                   textInputAction: TextInputAction.next,

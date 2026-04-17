@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import 'package:vibration/vibration.dart';
+import '../services/stealth_mode_service.dart';
 import '../services/emergency_service.dart';
 import '../services/audio_upload_queue.dart';
 import '../config/app_theme.dart';
