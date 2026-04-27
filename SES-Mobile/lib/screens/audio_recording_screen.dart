@@ -247,7 +247,10 @@ class _AudioRecordingScreenState extends State<AudioRecordingScreen> {
 
   @override
   void dispose() {
-    _audioService.dispose();
+    // NOTE: Do NOT call _audioService.dispose() here.
+    // AudioService is a singleton also used by ProtectModeController.
+    // Disposing it here would permanently break the volume-triple-press
+    // emergency recording flow for the rest of the session.
     super.dispose();
   }
 

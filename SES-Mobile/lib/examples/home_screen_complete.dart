@@ -403,7 +403,7 @@ class _HomeScreenCompleteState extends State<HomeScreenComplete> {
                     'Stay Safe. Always Connected.',
                     style: TextStyle(
                       fontSize: 14,
-                      color: AppTheme.hintColor,
+                      color: AppTheme.amber,
                     ),
                   ),
                 ],

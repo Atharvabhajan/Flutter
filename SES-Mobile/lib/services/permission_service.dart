@@ -8,6 +8,7 @@ class PermissionService {
       Permission.locationWhenInUse,
       Permission.microphone,
       Permission.notification,
+      Permission.sms,
     ].request();
 
     bool isLocationGranted = statuses[Permission.locationWhenInUse]?.isGranted ?? false;

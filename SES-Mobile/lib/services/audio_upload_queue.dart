@@ -51,15 +51,27 @@ class AudioUploadQueue {
   }
 
   // ── Entry point: Handle recording complete ────────────────────────────────────
-  static Future<void> handleRecordingComplete(String filePath) async {
+  // Callers should pass the GPS coordinates captured at recording time.
+  // Passing 0.0/0.0 is still accepted for backwards compatibility but creates
+  // emergency events with no location on the backend.
+  static Future<void> handleRecordingComplete(
+    String filePath, {
+    double latitude  = 0.0,
+    double longitude = 0.0,
+  }) async {
     if (filePath.isEmpty) return;
 
-    // Try immediate upload (fire-and-forget)
-    unawaited(_uploadSingleFile(filePath, 0));
+    // Try immediate upload (fire-and-forget), passing coordinates through
+    unawaited(_uploadSingleFile(filePath, 0, latitude: latitude, longitude: longitude));
   }
 
   // ── Add to pending uploads ────────────────────────────────────────────────────
-  static Future<void> addToPendingUploads(String filePath) async {
+  // Coordinates captured at recording time are stored so they survive app restarts.
+  static Future<void> addToPendingUploads(
+    String filePath, {
+    double latitude  = 0.0,
+    double longitude = 0.0,
+  }) async {
     // Avoid duplicates
     final exists = _queue.any((item) => item['filePath'] == filePath);
     if (exists) {
@@ -77,11 +89,13 @@ class AudioUploadQueue {
       } catch (_) {}
     }
 
-    // Add new entry
+    // Add new entry — store coordinates so they survive across app restarts
     _queue.add({
-      'filePath': filePath,
-      'retries': 0,
+      'filePath' : filePath,
+      'retries'  : 0,
       'timestamp': DateTime.now().millisecondsSinceEpoch,
+      'latitude' : latitude,
+      'longitude': longitude,
     });
 
     await _saveQueue();
@@ -112,15 +126,25 @@ class AudioUploadQueue {
     final queueCopy = List<Map<String, dynamic>>.from(_queue);
 
     for (final item in queueCopy) {
-      final filePath = item['filePath'] as String;
-      final retries = item['retries'] as int;
+      final filePath  = item['filePath']  as String;
+      final retries   = item['retries']   as int;
+      final latitude  = (item['latitude']  as num?)?.toDouble() ?? 0.0;
+      final longitude = (item['longitude'] as num?)?.toDouble() ?? 0.0;
 
-      await _uploadSingleFile(filePath, retries);
+      await _uploadSingleFile(
+        filePath, retries,
+        latitude: latitude, longitude: longitude,
+      );
     }
   }
 
   // ── Upload single file with retry logic ───────────────────────────────────────
-  static Future<void> _uploadSingleFile(String filePath, int currentRetries) async {
+  static Future<void> _uploadSingleFile(
+    String filePath,
+    int currentRetries, {
+    double latitude  = 0.0,
+    double longitude = 0.0,
+  }) async {
     try {
       // Check if file exists
       final file = File(filePath);
@@ -130,11 +154,13 @@ class AudioUploadQueue {
         return;
       }
 
-      // Attempt upload
+      // Attempt upload — include GPS coordinates captured at recording time
       if (kDebugMode) print('[AudioUploadQueue] Uploading: $filePath (retry $currentRetries)');
 
       final result = await EmergencyService.uploadAudio(
-        filePath: filePath,
+        filePath:  filePath,
+        latitude:  latitude,
+        longitude: longitude,
       );
 
       if (result.success) {

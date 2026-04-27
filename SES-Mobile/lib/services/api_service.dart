@@ -1,7 +1,53 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
-import '../config/api_url.dart';
+import 'package:http/http.dart' as http_pkg;
+import '../config/api_urls.dart';
 import 'auth_service.dart';
+
+class LoggingClient extends http_pkg.BaseClient {
+  final http_pkg.Client _inner = http_pkg.Client();
+
+  @override
+  Future<http_pkg.StreamedResponse> send(http_pkg.BaseRequest request) async {
+    print('=========================================');
+    print('➡️ API REQUEST: ${request.method} ${request.url}');
+    
+    if (request is http_pkg.Request) {
+      print('Body: ${request.body}');
+    } else if (request is http_pkg.MultipartRequest) {
+      print('Multipart Fields: ${request.fields}');
+    }
+
+    final startTime = DateTime.now();
+    try {
+      final response = await _inner.send(request);
+      final duration = DateTime.now().difference(startTime);
+
+      print('⬅️ API RESPONSE: ${response.statusCode} [${duration.inMilliseconds}ms]');
+      
+      final responseBodyBytes = await response.stream.toBytes();
+      final bodyString = utf8.decode(responseBodyBytes);
+      print('Response Body: $bodyString');
+      print('=========================================');
+
+      return http_pkg.StreamedResponse(
+        Stream.fromIterable([responseBodyBytes]),
+        response.statusCode,
+        contentLength: response.contentLength,
+        request: response.request,
+        headers: response.headers,
+        isRedirect: response.isRedirect,
+        persistentConnection: response.persistentConnection,
+        reasonPhrase: response.reasonPhrase,
+      );
+    } catch (e) {
+      print('❌ API ERROR: $e');
+      print('=========================================');
+      rethrow;
+    }
+  }
+}
+
+final http = LoggingClient();
 
 class ApiException implements Exception {
   final String message;
@@ -17,7 +63,8 @@ class ApiService {
   static const Duration _timeout = Duration(seconds: 30);
 
   // Helper: Get headers with JWT token
-  static Future<Map<String, String>> _getHeaders({bool requireAuth = true}) async {
+  static Future<Map<String, String>> _getHeaders(
+      {bool requireAuth = true}) async {
     final headers = <String, String>{
       'Content-Type': 'application/json',
       'Accept': 'application/json',
@@ -46,7 +93,7 @@ class ApiService {
   }) async {
     try {
       final headers = await _getHeaders(requireAuth: false);
-      
+
       final response = await http
           .post(
             Uri.parse(ApiUrl.register),
@@ -73,7 +120,7 @@ class ApiService {
   }) async {
     try {
       final headers = await _getHeaders(requireAuth: false);
-      
+
       final response = await http
           .post(
             Uri.parse(ApiUrl.login),
@@ -101,7 +148,7 @@ class ApiService {
   }) async {
     try {
       final headers = await _getHeaders(requireAuth: true);
-      
+
       final response = await http
           .post(
             Uri.parse(ApiUrl.triggerEmergency),
@@ -128,7 +175,7 @@ class ApiService {
   }) async {
     try {
       final headers = await _getHeaders(requireAuth: true);
-      
+
       final response = await http
           .post(
             Uri.parse(ApiUrl.analyzeText),
@@ -159,11 +206,12 @@ class ApiService {
         throw ApiException('Authentication token not found');
       }
 
-      final request = http.MultipartRequest('POST', Uri.parse(ApiUrl.uploadAudio))
-        ..headers['Authorization'] = 'Bearer $token'
-        ..fields['latitude'] = latitude.toString()
-        ..fields['longitude'] = longitude.toString()
-        ..files.add(await http.MultipartFile.fromPath('audio', filePath));
+      final request =
+          http_pkg.MultipartRequest('POST', Uri.parse(ApiUrl.uploadAudio))
+            ..headers['Authorization'] = 'Bearer $token'
+            ..fields['latitude'] = latitude.toString()
+            ..fields['longitude'] = longitude.toString()
+            ..files.add(await http_pkg.MultipartFile.fromPath('audio', filePath));
 
       final response = await request.send().timeout(_timeout);
       final responseBody = await response.stream.bytesToString();
@@ -183,7 +231,7 @@ class ApiService {
   static Future<Map<String, dynamic>> getEmergencyEvents() async {
     try {
       final headers = await _getHeaders(requireAuth: true);
-      
+
       final response = await http
           .get(
             Uri.parse(ApiUrl.getEmergencyEvents),
@@ -201,7 +249,7 @@ class ApiService {
   static Future<Map<String, dynamic>> getEmergencyEvent(String eventId) async {
     try {
       final headers = await _getHeaders(requireAuth: true);
-      
+
       final response = await http
           .get(
             Uri.parse('${ApiUrl.getEmergencyEvents}/$eventId'),
@@ -219,7 +267,7 @@ class ApiService {
   static Future<Map<String, dynamic>> resolveEmergency(String eventId) async {
     try {
       final headers = await _getHeaders(requireAuth: true);
-      
+
       final response = await http
           .put(
             Uri.parse('${ApiUrl.getEmergencyEvents}/$eventId/resolve'),
@@ -237,7 +285,7 @@ class ApiService {
   static Future<Map<String, dynamic>> cancelEmergency(String eventId) async {
     try {
       final headers = await _getHeaders(requireAuth: true);
-      
+
       final response = await http
           .put(
             Uri.parse('${ApiUrl.getEmergencyEvents}/$eventId/cancel'),
@@ -264,7 +312,7 @@ class ApiService {
   }) async {
     try {
       final headers = await _getHeaders(requireAuth: true);
-      
+
       final response = await http
           .post(
             Uri.parse(ApiUrl.addContact),
@@ -290,7 +338,7 @@ class ApiService {
   static Future<Map<String, dynamic>> getContacts() async {
     try {
       final headers = await _getHeaders(requireAuth: true);
-      
+
       final response = await http
           .get(
             Uri.parse(ApiUrl.getContacts),
@@ -316,7 +364,7 @@ class ApiService {
   }) async {
     try {
       final headers = await _getHeaders(requireAuth: true);
-      
+
       final response = await http
           .put(
             Uri.parse('${ApiUrl.updateContact}/$contactId'),
@@ -342,7 +390,7 @@ class ApiService {
   static Future<Map<String, dynamic>> deleteContact(String contactId) async {
     try {
       final headers = await _getHeaders(requireAuth: true);
-      
+
       final response = await http
           .delete(
             Uri.parse('${ApiUrl.deleteContact}/$contactId'),
@@ -358,7 +406,7 @@ class ApiService {
 
   // ─── RESPONSE HANDLER ───────────────────────────────────────────────────
 
-  static Map<String, dynamic> _handleResponse(http.Response response) {
+  static Map<String, dynamic> _handleResponse(http_pkg.Response response) {
     try {
       final json = jsonDecode(response.body) as Map<String, dynamic>;
 
@@ -373,9 +421,11 @@ class ApiService {
       } else if (response.statusCode == 404) {
         throw ApiException('Not found.', 404);
       } else if (response.statusCode == 409) {
-        throw ApiException(json['message'] ?? 'Conflict. Resource already exists.', 409);
+        throw ApiException(
+            json['message'] ?? 'Conflict. Resource already exists.', 409);
       } else if (response.statusCode >= 500) {
-        throw ApiException('Server error. Please try again later.', response.statusCode);
+        throw ApiException(
+            'Server error. Please try again later.', response.statusCode);
       } else {
         throw ApiException(
           json['message'] ?? 'Request failed',

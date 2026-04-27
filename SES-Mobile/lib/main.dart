@@ -13,7 +13,7 @@ import 'services/stealth_mode_service.dart';
 import 'services/audio_upload_queue.dart';
 import 'screens/stealth_notes_screen.dart';
 import 'widgets/volume_detection_listener.dart';
-import 'config/api_url.dart';
+import 'config/api_urls.dart';
 
 void main() {
   runApp(const MyApp());
@@ -123,7 +123,8 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   void _showApiConfigDialog(BuildContext context) {
-    final TextEditingController controller = TextEditingController(text: ApiUrl.baseUrl);
+    final TextEditingController controller =
+        TextEditingController(text: ApiUrl.baseUrl);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -236,36 +237,37 @@ class _MainAppState extends State<MainApp> with WidgetsBindingObserver {
     return ValueListenableBuilder<bool>(
       valueListenable: StealthModeService.isStealthNotifier,
       builder: (context, isStealth, child) {
-        // If stealth mode is active, show StealthNotesScreen directly (no tabs)
-        if (isStealth) {
-          return const StealthNotesScreen();
-        }
-
-        // Otherwise, show normal app with bottom navigation
-        return Scaffold(
-          body: IndexedStack(
-            index: _selectedIndex,
-            children: [
-              VolumeDetectionListener(
-                child: HomeScreen(onLogout: _onLogout),
-              ),
-              const GuideScreen(),
-            ],
-          ),
-          bottomNavigationBar: BottomNavigationBar(
-            currentIndex: _selectedIndex,
-            onTap: (index) => setState(() => _selectedIndex = index),
-            items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.home_rounded),
-                label: 'Home',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.info_rounded),
-                label: 'Guide',
-              ),
-            ],
-          ),
+        // VolumeDetectionListener wraps EVERYTHING so the triple-press emergency
+        // trigger stays alive whether the app shows the normal UI or the stealth
+        // Notes disguise — the two are mutually exclusive in appearance only.
+        return VolumeDetectionListener(
+          child: isStealth
+              // ── Stealth disguise: looks like a plain notes app ──────────────
+              ? const StealthNotesScreen()
+              // ── Normal UI: tabbed home + guide ─────────────────────────────
+              : Scaffold(
+                  body: IndexedStack(
+                    index: _selectedIndex,
+                    children: [
+                      HomeScreen(onLogout: _onLogout),
+                      const GuideScreen(),
+                    ],
+                  ),
+                  bottomNavigationBar: BottomNavigationBar(
+                    currentIndex: _selectedIndex,
+                    onTap: (index) => setState(() => _selectedIndex = index),
+                    items: const [
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.home_rounded),
+                        label: 'Home',
+                      ),
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.info_rounded),
+                        label: 'Guide',
+                      ),
+                    ],
+                  ),
+                ),
         );
       },
     );

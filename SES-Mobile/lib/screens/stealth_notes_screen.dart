@@ -185,7 +185,28 @@ class _StealthNotesScreenState extends State<StealthNotesScreen> {
       setState(() => _isRecording = false);
 
       if (_recordingPath.isNotEmpty) {
-        unawaited(AudioUploadQueue.handleRecordingComplete(_recordingPath));
+        // Capture GPS at the moment recording stops so the upload queue
+        // sends real coordinates to the backend (fixes bug: always 0,0).
+        double lat = 0.0, lng = 0.0;
+        try {
+          final pos = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.high,
+            timeLimit: const Duration(seconds: 4),
+          );
+          lat = pos.latitude;
+          lng = pos.longitude;
+        } catch (_) {
+          try {
+            final last = await Geolocator.getLastKnownPosition();
+            if (last != null) { lat = last.latitude; lng = last.longitude; }
+          } catch (_) {}
+        }
+
+        unawaited(AudioUploadQueue.handleRecordingComplete(
+          _recordingPath,
+          latitude:  lat,
+          longitude: lng,
+        ));
       }
     } catch (_) {
       setState(() => _isRecording = false);

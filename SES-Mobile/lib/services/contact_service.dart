@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
 
 class ContactService {
@@ -44,6 +46,11 @@ class ContactService {
               .toList() ??
           [];
 
+      // Cache contacts locally for offline SMS fallback
+      final prefs = await SharedPreferences.getInstance();
+      final String contactsJson = jsonEncode(contacts.map((c) => c.toJson()).toList());
+      await prefs.setString('cached_emergency_contacts', contactsJson);
+
       return GetContactsResult(
         success: true,
         message: response['message'] ?? 'Contacts retrieved',
@@ -55,6 +62,20 @@ class ContactService {
         message: e.message,
         contacts: [],
       );
+    }
+  }
+
+  /// Get emergency contacts from local cache (for offline use)
+  static Future<List<EmergencyContact>> getLocalContacts() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? contactsJson = prefs.getString('cached_emergency_contacts');
+      if (contactsJson == null) return [];
+
+      final List<dynamic> decoded = jsonDecode(contactsJson);
+      return decoded.map((c) => EmergencyContact.fromJson(c as Map<String, dynamic>)).toList();
+    } catch (e) {
+      return [];
     }
   }
 
@@ -167,5 +188,18 @@ class EmergencyContact {
       telegramChatId: json['telegramChatId'],
       priority: json['priority'] ?? 1,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      '_id': id,
+      'name': name,
+      'phone': phone,
+      'relation': relation,
+      'email': email,
+      'telegramChatId': telegramChatId,
+      'priority': priority,
+    };
   }
 }

@@ -1,10 +1,42 @@
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vibration/vibration.dart';
+import 'package:telephony/telephony.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'contact_service.dart';
 import 'api_service.dart';
 import 'practice_service.dart';
 
 class EmergencyService {
+  static Future<void> _dispatchSmsAlert(double latitude, double longitude) async {
+    try {
+      if (!PracticeService.isRealMode) return;
+      
+      final bool hasSmsPermission = await Permission.sms.isGranted;
+      if (!hasSmsPermission) {
+        final status = await Permission.sms.request();
+        if (!status.isGranted) return;
+      }
+
+      final contacts = await ContactService.getLocalContacts();
+      if (contacts.isEmpty) return;
+
+      final message = 'EMERGENCY! I need help. My last known location is: https://maps.google.com/?q=$latitude,$longitude';
+      final telephony = Telephony.instance;
+
+      for (var contact in contacts) {
+        if (contact.phone.isNotEmpty) {
+          await telephony.sendSms(
+            to: contact.phone,
+            message: message,
+          );
+        }
+      }
+    } catch (e) {
+      print('SMS Alert failed: $e');
+    }
+  }
+
   /// Trigger emergency manually with GPS location
   static Future<EmergencyResult> triggerEmergency({
     required double latitude,
@@ -21,6 +53,9 @@ class EmergencyService {
         eventId: 'practice_event_${DateTime.now().millisecondsSinceEpoch}',
       );
     }
+
+    // Dispatch SMS alert concurrently
+    _dispatchSmsAlert(latitude, longitude);
 
     try {
       final response = await ApiService.triggerEmergency(
@@ -127,6 +162,10 @@ class EmergencyService {
         longitude: longitude,
       );
 
+      if (response['isThreat'] == true) {
+        _dispatchSmsAlert(latitude, longitude);
+      }
+
       return EmergencyResult(
         success: response['isThreat'] ?? false,
         message: response['message'] ?? 'Text analysis complete',
@@ -135,6 +174,9 @@ class EmergencyService {
         confidenceScore: (response['confidence'] as num?)?.toDouble(),
       );
     } on ApiException catch (e) {
+      // If offline or failed, we can't know if it's a threat, but the user requested SMS on any alert trigger.
+      // To be safe during an offline text analysis (which implies the user typed a stealth trigger), send SMS.
+      _dispatchSmsAlert(latitude, longitude);
       return EmergencyResult(
         success: false,
         message: e.message,
@@ -155,6 +197,10 @@ class EmergencyService {
         longitude: longitude,
       );
 
+      if (response['isThreat'] == true) {
+        _dispatchSmsAlert(latitude, longitude);
+      }
+
       return EmergencyResult(
         success: response['isThreat'] ?? false,
         message: response['message'] ?? 'Audio analysis complete',
@@ -164,6 +210,8 @@ class EmergencyService {
         transcription: response['transcription'],
       );
     } on ApiException catch (e) {
+      // Offline audio upload implies an emergency was triggered previously or manually. Send SMS.
+      _dispatchSmsAlert(latitude, longitude);
       return EmergencyResult(
         success: false,
         message: e.message,
