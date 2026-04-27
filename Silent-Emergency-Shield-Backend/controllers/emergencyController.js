@@ -106,7 +106,7 @@ async function createAndDispatchEmergency(userId, latitude, longitude, metadata 
   console.log(`⚡ Trigger: ${triggerType}\n`);
 
   if (triggerType === "audio_ai" || triggerType === "text_ai") {
-    // AI-triggered: send Telegram to user + all contacts that have a chat ID
+    // AI-triggered: send Telegram + SMS to user + all contacts
     if (user.telegramChatId) {
       try {
         await sendTelegramAlert(user.telegramChatId, location);
@@ -116,10 +116,11 @@ async function createAndDispatchEmergency(userId, latitude, longitude, metadata 
     } else {
       logger.warn("User has not connected Telegram. Alert not sent.", { userId: String(userId) });
     }
-    await sendTelegramToContacts(contacts, location);
+    // Pass user.name so SMS messages are personalised per contact
+    await sendTelegramToContacts(contacts, location, user.name);
   } else {
-    // Manual trigger: track contacts + send email
-    const alertResult = await sendAlert(contacts, location);
+    // Manual / protect-mode trigger: track contacts + send email
+    const alertResult = await sendAlert(contacts, location, user.name);
     if (alertResult.contactsNotified.length > 0) {
       event.contactsNotified = alertResult.contactsNotified;
       event.alertsSent       = alertResult.alertsSent;

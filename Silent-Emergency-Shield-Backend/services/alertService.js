@@ -1,4 +1,5 @@
-const axios = require("axios");
+const axios      = require("axios");
+const { sendSMSToContacts } = require("./smsService");
 
 // ─── Primary Telegram Alert ───────────────────────────────────────────────────
 
@@ -53,38 +54,63 @@ const sendTelegramAlert = async (chatId, location) => {
   }
 };
 
-// ─── Send Telegram alert to all contacts that have a chatId ──────────────────
+// ─── Send Telegram + SMS to all contacts ─────────────────────────────────────
 
 /**
- * Fires a Telegram alert to every contact that has a telegramChatId.
- * Failures per contact are logged but do not throw — other contacts still get alerted.
+ * Fires a Telegram alert to every contact that has a telegramChatId AND
+ * an SMS alert to every contact that has a phone number.
+ *
+ * Both channels run independently via Promise.allSettled.
+ * A failure in one channel never blocks the other.
+ *
+ * @param {Array}  contacts - Array of EmergencyContact documents
+ * @param {Object} location - { latitude, longitude }
+ * @param {string} userName - Name of the person in distress (for SMS personalisation)
  */
-const sendTelegramToContacts = async (contacts, location) => {
+const sendTelegramToContacts = async (contacts, location, userName = "Your contact") => {
   if (!contacts || contacts.length === 0) return;
 
+  // ── Telegram ─────────────────────────────────────────────────────────────────
   const withTelegram = contacts.filter((c) => c.telegramChatId);
-  if (withTelegram.length === 0) {
-    console.log("ℹ️  No contacts have Telegram linked — skipping contact Telegram alerts");
-    return;
-  }
+  const telegramJob = withTelegram.length > 0
+    ? (async () => {
+        console.log(`📤 Sending Telegram alerts to ${withTelegram.length} contact(s)...`);
+        await Promise.allSettled(
+          withTelegram.map(async (contact) => {
+            const result = await sendTelegramAlert(contact.telegramChatId, location);
+            console.log(
+              result.success
+                ? `   ✅ Telegram sent  → ${contact.name}`
+                : `   ❌ Telegram failed → ${contact.name}: ${result.reason}`,
+            );
+          }),
+        );
+      })()
+    : Promise.resolve();
 
-  console.log(`📤 Sending Telegram alerts to ${withTelegram.length} contact(s)...`);
+  // ── SMS (Fast2SMS) ───────────────────────────────────────────────────────────
+  // Runs completely independently — if SMS fails for any reason the Telegram path
+  // is already in-flight and unaffected.
+  const smsJob = sendSMSToContacts(contacts, location, userName).catch((err) => {
+    // sendSMSToContacts itself never throws, but belt-and-suspenders:
+    console.error("[SMS] Unexpected top-level error — ignored:", err.message);
+  });
 
-  await Promise.allSettled(
-    withTelegram.map(async (contact) => {
-      const result = await sendTelegramAlert(contact.telegramChatId, location);
-      if (result.success) {
-        console.log(`   ✅ Telegram sent → ${contact.name}`);
-      } else {
-        console.log(`   ❌ Telegram failed → ${contact.name}: ${result.reason}`);
-      }
-    }),
-  );
+  // ── Wait for both channels ───────────────────────────────────────────────────
+  await Promise.allSettled([telegramJob, smsJob]);
 };
 
-// ─── Contact Tracker + per-contact Telegram ──────────────────────────────────
+// ─── Contact Tracker + Telegram + SMS ────────────────────────────────────────
 
-const sendAlert = async (contacts, location) => {
+/**
+ * Entry point for manual / protect-mode emergencies.
+ * Logs contacts, sends Telegram + SMS in parallel, returns a summary.
+ *
+ * @param {Array}  contacts - EmergencyContact documents
+ * @param {Object} location - { latitude, longitude }
+ * @param {string} userName - Name of the person in distress
+ */
+const sendAlert = async (contacts, location, userName = "The user") => {
   if (!contacts || contacts.length === 0) {
     console.log("⚠️  No emergency contacts registered");
     return { success: true, alertsSent: 0, contactsNotified: [] };
@@ -95,7 +121,8 @@ const sendAlert = async (contacts, location) => {
     console.log(`   [${i + 1}] ${c.name} (${c.relation}) — ${c.phone}${c.telegramChatId ? " 📱" : ""}`);
   });
 
-  await sendTelegramToContacts(contacts, location);
+  // Both Telegram and SMS are dispatched here; failures in either are self-contained
+  await sendTelegramToContacts(contacts, location, userName);
 
   return {
     success:          true,

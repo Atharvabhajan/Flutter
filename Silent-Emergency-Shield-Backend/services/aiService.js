@@ -1,5 +1,4 @@
 const fs = require("fs");
-
 /**
  * AI Service — weighted threat scoring
  *
@@ -14,20 +13,20 @@ const fs = require("fs");
  */
 
 const THREAT_KEYWORDS = {
-  "help":         3,
-  "save me":      3,
-  "leave me":     3,
-  "danger":       2,
-  "stop":         2,
-  "emergency":    3,
-  "police":       3,
-  "killing":      3,
-  "killed":       3,
-  "please not":   2,
+  "help": 3,
+  "save me": 3,
+  "leave me": 3,
+  "danger": 2,
+  "stop": 2,
+  "emergency": 3,
+  "police": 3,
+  "killing": 3,
+  "killed": 3,
+  "please not": 2,
   "please don't": 3,
-  "no no no":     3,
-  "stop it":      2,
-  "murder":       3,
+  "no no no": 3,
+  "stop it": 2,
+  "murder": 3,
 };
 
 // Minimum score required to trigger an emergency
@@ -77,6 +76,26 @@ const scoreThreat = (text) => {
 };
 
 // ─── Speech-to-text (mock) ────────────────────────────────────────────────────
+
+/**
+ * Convert M4A/AAC to 16kHz WAV format required by Whisper
+ */
+const convertAudioToWav = (inputPath, outputPath) => {
+  return new Promise((resolve, reject) => {
+    ffmpeg(inputPath)
+      .toFormat('wav')
+      .audioChannels(1)
+      .audioFrequency(16000)
+      .on('error', (err) => {
+        console.error('FFMPEG Error:', err);
+        reject(err);
+      })
+      .on('end', () => {
+        resolve(outputPath);
+      })
+      .save(outputPath);
+  });
+};
 
 /**
  * Mock STT conversion.
@@ -149,12 +168,12 @@ const analyzeText = (text) => {
  */
 const getMockTranscription = () => {
   const samples = [
-    { text: "help me please i am in danger",        threat: true  },
-    { text: "this is a normal conversation",         threat: false },
-    { text: "save me someone help",                  threat: true  },
-    { text: "please stop this person is dangerous",  threat: true  },
-    { text: "leave me alone i need help",            threat: true  },
-    { text: "just a regular recording",              threat: false },
+    { text: "help me please i am in danger", threat: true },
+    { text: "this is a normal conversation", threat: false },
+    { text: "save me someone help", threat: true },
+    { text: "please stop this person is dangerous", threat: true },
+    { text: "leave me alone i need help", threat: true },
+    { text: "just a regular recording", threat: false },
   ];
   return samples[Math.floor(Math.random() * samples.length)];
 };
