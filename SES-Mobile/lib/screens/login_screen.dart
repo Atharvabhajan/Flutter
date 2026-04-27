@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:veil_note/config/api_urls.dart';
 import '../services/auth_service.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_text_field.dart';
@@ -48,7 +49,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (response.success) {
       final prefs = await SharedPreferences.getInstance();
       final isCompleted = prefs.getBool('onboardingComplete') ?? false;
-      
+
       if (!isCompleted) {
         if (!mounted) return;
         Navigator.of(context).pushReplacement(
@@ -64,6 +65,42 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     setState(() => _isLoading = false);
+  }
+
+  void _showApiConfigDialog(BuildContext context) {
+    final TextEditingController controller =
+        TextEditingController(text: ApiUrl.baseUrl);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Developer API Config'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            labelText: 'Base API URL',
+            hintText: 'http://192.168.x.x:5000/api',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await ApiUrl.saveBaseUrl(controller.text);
+              if (mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('API URL updated: ${ApiUrl.baseUrl}')),
+                );
+              }
+            },
+            child: const Text('Save & Apply'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -84,20 +121,24 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   const SizedBox(height: 60),
                   // ─── Branding ──────────────────────────────────────────────
-                  Center(
-                    child: Image.asset(
-                      'assets/images/veil_note_logo.png',
-                      height: 100,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Icon(
-                          Icons.security_rounded,
-                          size: 60,
-                          color: theme.colorScheme.primary,
+                  GestureDetector(
+                    onLongPress: () => _showApiConfigDialog(context),
+                    child: Center(
+                      child: Image.asset(
+                        'assets/images/veil_note_logo.png',
+                        height: 100,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary
+                                .withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Icon(
+                            Icons.security_rounded,
+                            size: 60,
+                            color: theme.colorScheme.primary,
+                          ),
                         ),
                       ),
                     ),
@@ -115,7 +156,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 54),
-                  
+
                   // ─── Form Fields ───────────────────────────────────────────
                   CustomTextField(
                     label: 'Email',
@@ -141,7 +182,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                   ),
                   const SizedBox(height: 48),
-                  
+
                   // ─── Actions ────────────────────────────────────────────────
                   CustomButton(
                     label: 'Sign In',

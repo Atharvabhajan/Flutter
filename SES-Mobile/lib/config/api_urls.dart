@@ -1,20 +1,21 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiUrl {
-  static String _baseUrl = 'http://10.228.25.175:5000/api';
+  static String _baseUrl = 'http://10.20.18.31:5000/api';
 
   static Future<void> loadBaseUrl() async {
     final prefs = await SharedPreferences.getInstance();
     final savedUrl = prefs.getString('custom_api_base_url');
     if (savedUrl != null && savedUrl.isNotEmpty) {
-      _baseUrl = savedUrl;
+      _baseUrl = savedUrl.replaceAll(' ', '').replaceAll('%20', '');
     }
   }
 
   static Future<void> saveBaseUrl(String url) async {
+    final cleanUrl = url.replaceAll(' ', '').replaceAll('%20', '');
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('custom_api_base_url', url);
-    _baseUrl = url;
+    await prefs.setString('custom_api_base_url', cleanUrl);
+    _baseUrl = cleanUrl;
   }
 
   static String get baseUrl => _baseUrl;

@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../config/api_url.dart';
+import '../config/api_urls.dart';
 import 'auth_service.dart';
 
 class TelegramService {
@@ -17,10 +17,12 @@ class TelegramService {
   static Future<String?> connectTelegram() async {
     try {
       final headers = await _getHeaders();
-      final response = await http.get(
-        Uri.parse(ApiUrl.telegramConnect),
-        headers: headers,
-      ).timeout(const Duration(seconds: 15));
+      final response = await http
+          .get(
+            Uri.parse(ApiUrl.telegramConnect),
+            headers: headers,
+          )
+          .timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -37,11 +39,13 @@ class TelegramService {
   static Future<bool> saveChatId(String chatId) async {
     try {
       final headers = await _getHeaders();
-      final response = await http.post(
-        Uri.parse(ApiUrl.telegramSaveChatId),
-        headers: headers,
-        body: jsonEncode({'chatId': chatId}),
-      ).timeout(const Duration(seconds: 15));
+      final response = await http
+          .post(
+            Uri.parse(ApiUrl.telegramSaveChatId),
+            headers: headers,
+            body: jsonEncode({'chatId': chatId}),
+          )
+          .timeout(const Duration(seconds: 15));
 
       return response.statusCode == 200;
     } catch (e) {
@@ -54,14 +58,16 @@ class TelegramService {
   static Future<bool> triggerDirectAlert(double lat, double lng) async {
     try {
       final headers = await _getHeaders();
-      final response = await http.post(
-        Uri.parse(ApiUrl.telegramTriggerAlert),
-        headers: headers,
-        body: jsonEncode({
-          'latitude': lat,
-          'longitude': lng,
-        }),
-      ).timeout(const Duration(seconds: 20));
+      final response = await http
+          .post(
+            Uri.parse(ApiUrl.telegramTriggerAlert),
+            headers: headers,
+            body: jsonEncode({
+              'latitude': lat,
+              'longitude': lng,
+            }),
+          )
+          .timeout(const Duration(seconds: 20));
 
       return response.statusCode == 200 || response.statusCode == 201;
     } catch (e) {
